@@ -1,5 +1,6 @@
 import express, { Express, Request, Response } from 'express';
 import dotenv from 'dotenv';
+import { connectDB } from './config/database.js';
 
 // Load environment variables
 dotenv.config();
@@ -61,17 +62,35 @@ app.use((err: any, req: Request, res: Response, next: any) => {
   });
 });
 
-// Start server
-const PORT = process.env.PORT || 8000;
-app.listen(PORT, () => {
-  const codespaceName = process.env.CODESPACE_NAME;
-  const baseUrl = codespaceName
-    ? `https://${codespaceName}-8000.app.github.dev`
-    : `http://localhost:${PORT}`;
+// Start server with MongoDB connection
+async function startServer() {
+  try {
+    // Connect to MongoDB
+    await connectDB();
 
-  console.log(`\n🚀 OctoFit Tracker API Server`);
-  console.log(`📍 Server running at: ${baseUrl}`);
-  console.log(`✅ Health check: ${baseUrl}/api/health\n`);
-});
+    const PORT = process.env.PORT || 8000;
+    const codespaceName = process.env.CODESPACE_NAME;
+    
+    // Generate base URL based on environment
+    const baseUrl = codespaceName
+      ? `https://${codespaceName}-8000.app.github.dev`
+      : `http://localhost:${PORT}`;
+
+    app.listen(PORT, () => {
+      console.log(`\n🚀 OctoFit Tracker API Server`);
+      console.log(`📍 Environment: ${codespaceName ? 'GitHub Codespaces' : 'localhost'}`);
+      console.log(`📍 Server running at: ${baseUrl}`);
+      console.log(`✅ Health check: ${baseUrl}/api/health`);
+      console.log(`👥 Users API: ${baseUrl}/api/users`);
+      console.log(`⚡ Activities API: ${baseUrl}/api/activities\n`);
+    });
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+// Start the server
+startServer();
 
 export default app;
